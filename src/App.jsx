@@ -39,6 +39,15 @@ const emptyMatch = {
 };
 
 export default function App() {
+  const [session, setSession] = useState(null);
+const [loginOpen, setLoginOpen] = useState(false);
+const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+const [news, setNews] = useState([]);
+const [newsForm, setNewsForm] = useState({
+  type: "TRANSFER",
+  title: "",
+  content: ""
+});
   const [page, setPage] = useState("home");
 
   const [teams, setTeams] = useState([]);
@@ -58,19 +67,28 @@ export default function App() {
 const [selectedTeamDetail, setSelectedTeamDetail] = useState(null);
 
   useEffect(() => {
-    fetchAll();
+  fetchAll();
 
-    const channel = supabase
-      .channel("alisar-live-data")
-      .on("postgres_changes", { event: "*", schema: "public", table: "teams" }, fetchAll)
-      .on("postgres_changes", { event: "*", schema: "public", table: "players" }, fetchAll)
-      .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, fetchAll)
-      .subscribe();
+  supabase.auth.getSession().then(({ data }) => {
+    setSession(data.session);
+  });
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+  supabase.auth.onAuthStateChange((_event, session) => {
+    setSession(session);
+  });
+
+  const channel = supabase
+    .channel("alisar-live-data")
+    .on("postgres_changes", { event: "*", schema: "public", table: "teams" }, fetchAll)
+    .on("postgres_changes", { event: "*", schema: "public", table: "players" }, fetchAll)
+    .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, fetchAll)
+    .on("postgres_changes", { event: "*", schema: "public", table: "news" }, fetchAll)
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
 
   async function fetchAll() {
     const { data: teamsData, error: teamsError } = await supabase
@@ -340,6 +358,53 @@ const dayMatch = upcoming[0] || past[0];
     if (!finishId) return alert("Maç seç.");
     if (finishScore.home_score === "" || finishScore.away_score === "") return alert("Skor gir.");
 
+    async function loginAdmin() {
+  const { error } = await supabase.auth.signInWithPassword({
+    email: loginForm.email,
+    password: loginForm.password
+  });
+
+  if (error) return alert("Giriş başarısız: " + error.message);
+
+  setLoginOpen(false);
+  setLoginForm({ email: "", password: "" });
+}
+
+async function logoutAdmin() {
+  await supabase.auth.signOut();
+  setPage("home");
+}
+
+async function addNews() {
+  if (!newsForm.title.trim()) return alert("Haber başlığı boş olamaz.");
+
+  const { error } = await supabase.from("news").insert({
+    type: newsForm.type,
+    title: newsForm.title,
+    content: newsForm.content
+  });
+
+  if (error) return alert("Haber eklenemedi: " + error.message);
+
+  setNewsForm({
+    type: "TRANSFER",
+    title: "",
+    content: ""
+  });
+
+  fetchAll();
+}
+
+async function deleteNews(id) {
+  if (!confirm("Haber silinsin mi?")) return;
+
+  const { error } = await supabase.from("news").delete().eq("id", id);
+
+  if (error) return alert("Haber silinemedi: " + error.message);
+
+  fetchAll();
+}
+
     const { error } = await supabase
       .from("matches")
       .update({
@@ -392,7 +457,15 @@ const dayMatch = upcoming[0] || past[0];
           <button onClick={() => setPage("teams")} className={page === "teams" ? "active" : ""}>Takımlar</button>
           <button onClick={() => setPage("players")} className={page === "players" ? "active" : ""}>Oyuncular</button>
           <button onClick={() => setPage("matches")} className={page === "matches" ? "active" : ""}>Maçlar</button>
-          <button onClick={() => setPage("admin")} className={page === "admin" ? "active" : ""}>Admin</button>
+          {session ? (
+  <button onClick={() => setPage("admin")} className={page === "admin" ? "active" : ""}>
+    Admin
+  </button>
+) : (
+  <button onClick={() => setLoginOpen(true)}>
+    Giriş Yap
+  </button>
+)}
         </nav>
 
         <div className="sideCard">
@@ -417,11 +490,17 @@ const dayMatch = upcoming[0] || past[0];
 
             <section className="grid two">
               <Standings teams={standings} />
-              <Panel title="Lig Haberleri">
-                <div className="news"><b>TRANSFER</b><p>Takımlar kadrolarını güçlendirmek için piyasaya indi.</p></div>
-                <div className="news"><b>MAÇ ÖNÜ</b><p>Haftanın maçı için sahada tansiyon yüksek.</p></div>
-                <div className="news"><b>PERFORMANS</b><p>Gol krallığı yarışı kızışıyor.</p></div>
-              </Panel>
+             <Panel title="Lig Haberleri">
+  {news.length === 0 && <p>Henüz haber eklenmedi.</p>}
+
+  {news.map((n) => (
+    <div className="news" key={n.id}>
+      <b>{n.type}</b>
+      <h3>{n.title}</h3>
+      <p>{n.content}</p>
+    </div>
+  ))}
+</Panel>
             </section>
           </>
         )}
@@ -477,6 +556,41 @@ const dayMatch = upcoming[0] || past[0];
         {page === "matches" && (
           <Page title="Maçlar">
             <div className="grid two">
+              <Panel title="Lig Haberi Ekle">
+  <select
+    value={newsForm.type}
+    onChange={(e) => setNewsForm({ ...newsForm, type: e.target.value })}
+  >
+    <option>TRANSFER</option>
+    <option>MAÇ ÖNÜ</option>
+    <option>PERFORMANS</option>
+    <option>DUYURU</option>
+    <option>SON DAKİKA</option>
+  </select>
+
+  <input
+    placeholder="Haber başlığı"
+    value={newsForm.title}
+    onChange={(e) => setNewsForm({ ...newsForm, title: e.target.value })}
+  />
+
+  <input
+    placeholder="Haber açıklaması"
+    value={newsForm.content}
+    onChange={(e) => setNewsForm({ ...newsForm, content: e.target.value })}
+  />
+
+  <button onClick={addNews}>Haberi Yayınla</button>
+
+  {news.map((n) => (
+    <div className="adminRow" key={n.id}>
+      <span>{n.type} - {n.title}</span>
+      <button className="danger" onClick={() => deleteNews(n.id)}>Sil</button>
+    </div>
+  ))}
+
+  <button onClick={logoutAdmin}>Çıkış Yap</button>
+</Panel>
               <Panel title="Gelecek Maçlar">
                 {upcoming.map((m) => (
                   <MatchCard key={m.id} match={m} getTeam={getTeam} formatDate={formatDate} />
@@ -669,6 +783,29 @@ const dayMatch = upcoming[0] || past[0];
             </div>
           </Page>
         )}
+        {loginOpen && (
+  <div className="modalOverlay" onClick={() => setLoginOpen(false)}>
+    <div className="teamModal" onClick={(e) => e.stopPropagation()}>
+      <h2>Admin Girişi</h2>
+
+      <input
+        placeholder="E-posta"
+        value={loginForm.email}
+        onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+      />
+
+      <input
+        type="password"
+        placeholder="Şifre"
+        value={loginForm.password}
+        onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+      />
+
+      <button onClick={loginAdmin}>Giriş Yap</button>
+      <button className="danger" onClick={() => setLoginOpen(false)}>Kapat</button>
+    </div>
+  </div>
+)}
       </main>
       <div className="mobileNav">
   <button onClick={() => setPage("home")}>Ana Sayfa</button>
