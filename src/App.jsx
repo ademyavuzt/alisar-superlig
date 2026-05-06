@@ -54,6 +54,8 @@ export default function App() {
   const [finishScorers, setFinishScorers] = useState([]);
   const [finishYellows, setFinishYellows] = useState([]);
   const [finishReds, setFinishReds] = useState([]);
+  const [playerFilterTeam, setPlayerFilterTeam] = useState("");
+const [selectedTeamDetail, setSelectedTeamDetail] = useState(null);
 
   useEffect(() => {
     fetchAll();
@@ -167,6 +169,9 @@ export default function App() {
   }, [teams, matches]);
 
   const playerStats = useMemo(() => {
+  const filteredPlayers = playerFilterTeam
+  ? playerStats.filter((p) => p.team_id === playerFilterTeam)
+  : playerStats;
     const map = new Map(players.map((p) => [p.id, { ...p, goals: 0, yellow: 0, red: 0 }]));
 
     matches.forEach((m) => {
@@ -193,8 +198,7 @@ export default function App() {
 
   const upcoming = matches.filter((m) => !m.finished);
   const past = matches.filter((m) => m.finished);
-  const dayMatch = upcoming[0];
-
+const dayMatch = upcoming[0] || past[0];
   const matchPlayers = finishId
     ? players.filter((p) => {
         const m = matches.find((x) => x.id === finishId);
@@ -407,7 +411,10 @@ export default function App() {
             </section>
 
             <section className="grid two">
-              <Standings teams={standings} />
+           <Standings
+  teams={standings}
+  onTeamClick={setSelectedTeamDetail}
+/>
               <Panel title="Lig Haberleri">
                 <div className="news"><b>TRANSFER</b><p>Takımlar kadrolarını güçlendirmek için piyasaya indi.</p></div>
                 <div className="news"><b>MAÇ ÖNÜ</b><p>Haftanın maçı için sahada tansiyon yüksek.</p></div>
@@ -440,8 +447,23 @@ export default function App() {
 
         {page === "players" && (
           <Page title="Oyuncular">
-            <div className="cards">
-              {playerStats.map((p) => (
+         <div className="filterBar">
+  <select
+    value={playerFilterTeam}
+    onChange={(e) => setPlayerFilterTeam(e.target.value)}
+  >
+    <option value="">Tüm Takımlar</option>
+
+    {teams.map((t) => (
+      <option key={t.id} value={t.id}>
+        {t.name}
+      </option>
+    ))}
+  </select>
+</div>
+
+<div className="cards">
+  {filteredPlayers.map((p) => (
                 <div className="teamCard" key={p.id}>
                   <div className="playerAvatar">{p.name?.[0]}</div>
                   <h2>{p.name}</h2>
@@ -660,6 +682,67 @@ export default function App() {
             </div>
           </Page>
         )}
+        {selectedTeamDetail && (
+  <div
+    className="modalOverlay"
+    onClick={() => setSelectedTeamDetail(null)}
+  >
+    <div
+      className="teamModal"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Logo team={selectedTeamDetail} />
+
+      <h2>{selectedTeamDetail.name}</h2>
+
+      <p>
+        Başkan: {selectedTeamDetail.president || "-"}
+      </p>
+
+      <div className="stats">
+        <Stat
+          label="Puan"
+          value={selectedTeamDetail.pts}
+          green
+        />
+
+        <Stat
+          label="Galibiyet"
+          value={selectedTeamDetail.wins}
+        />
+
+        <Stat
+          label="Beraberlik"
+          value={selectedTeamDetail.draws}
+        />
+
+        <Stat
+          label="Mağlubiyet"
+          value={selectedTeamDetail.losses}
+        />
+      </div>
+
+      <h3>Oyuncular</h3>
+
+      {players
+        .filter(
+          (p) => p.team_id === selectedTeamDetail.id
+        )
+        .map((p) => (
+          <div className="adminRow" key={p.id}>
+            <span>{p.name}</span>
+            <span>{p.position || "-"}</span>
+          </div>
+        ))}
+
+      <button
+        onClick={() => setSelectedTeamDetail(null)}
+      >
+        Kapat
+      </button>
+    </div>
+  </div>
+)}
       </main>
       <div className="mobileNav">
   <button onClick={() => setPage("home")}>Ana Sayfa</button>
@@ -703,7 +786,11 @@ function MatchCard({ match, getTeam, formatDate, title }) {
           <b>{home?.name}</b>
         </div>
 
-        <strong>VS</strong>
+        <strong>
+          {match.finished
+            ? `${match.home_score} - ${match.away_score}`
+            : "VS"}
+        </strong>
 
         <div className="club">
           <b>{away?.name}</b>
@@ -711,13 +798,18 @@ function MatchCard({ match, getTeam, formatDate, title }) {
         </div>
       </div>
 
-      <p>{formatDate(match.match_date)}</p>
+      <p>{match.finished ? "MAÇ SONA ERDİ" : formatDate(match.match_date)}</p>
       <small>{match.field || "-"}</small>
+
+      {match.finished && (
+        <div className="matchEvents">
+          <p>Goller: {(match.scorers || []).map((id) => id).length || 0}</p>
+        </div>
+      )}
     </div>
   );
 }
-
-function Standings({ teams }) {
+function Standings({ teams, onTeamClick }) {
   return (
     <div className="panel">
       <h2>Puan Durumu</h2>
@@ -742,7 +834,16 @@ function Standings({ teams }) {
           {teams.map((t, i) => (
             <tr key={t.id}>
               <td>{i + 1}</td>
-              <td>{t.name}</td>
+
+              <td>
+                <button
+                  className="teamLink"
+                  onClick={() => onTeamClick(t)}
+                >
+                  {t.name}
+                </button>
+              </td>
+
               <td>{t.played}</td>
               <td>{t.wins}</td>
               <td>{t.draws}</td>
@@ -758,7 +859,6 @@ function Standings({ teams }) {
     </div>
   );
 }
-
 function Page({ title, children }) {
   return (
     <>
