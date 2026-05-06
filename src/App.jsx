@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "./supabase";
 import "./styles.css";
 const uid = () => crypto.randomUUID();
-const load = (key, fallback) => JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
+
 
 
 const emptyTeam = { name: "", logo: "", president: "", manual: false, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, pts: 0 };
@@ -11,6 +11,13 @@ const emptyMatch = { homeId: "", awayId: "", date: "", field: "", homeScore: "",
 
 export default function App() {
   const [page, setPage] = useState("home");
+  const [teams, setTeams] = useState([]);
+const [players, setPlayers] = useState([]);
+const [matches, setMatches] = useState([]);
+
+const [teamForm, setTeamForm] = useState(emptyTeam);
+const [playerForm, setPlayerForm] = useState(emptyPlayer);
+const [matchForm, setMatchForm] = useState(emptyMatch);
 
 useEffect(() => {
   fetchAll();
@@ -26,9 +33,6 @@ async function fetchAll() {
   setMatches(matchesData || []);
 }
 
- const [teams, setTeams] = useState([]);
- const [players, setPlayers] = useState([]);
- const [matches, setMatches] = useState([]);
 
   const [finishId, setFinishId] = useState("");
   const [finishScore, setFinishScore] = useState({ homeScore: "", awayScore: "" });
