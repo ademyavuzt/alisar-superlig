@@ -553,4 +553,30 @@ async function fetchAll() {
   setPlayers(playersData || []);
   setMatches(matchesData || []);
 }
+async function addTeam() {
+  console.log("TEAM EKLEME ÇALIŞTI");
+
+  const { data, error } = await supabase
+    .from("teams")
+    .insert([
+      {
+        name: teamForm.name,
+        logo: teamForm.logo,
+        president: teamForm.president,
+        manual: false,
+        played: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+        gf: 0,
+        ga: 0,
+        pts: 0
+      }
+    ]);
+
+  console.log(data);
+  console.log(error);
+
+  fetchAll();
+}
 }
