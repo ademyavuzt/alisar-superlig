@@ -1,7 +1,6 @@
+import React, { useEffect, useMemo, useState } from "react";
 import { supabase } from "./supabase";
-import { useEffect, useMemo, useState } from "react";
 import "./styles.css";
-
 const uid = () => crypto.randomUUID();
 const load = (key, fallback) => JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
 const [teams, setTeams] = useState(() => load("teams", []));
