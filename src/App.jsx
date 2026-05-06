@@ -11,13 +11,24 @@ const emptyMatch = { homeId: "", awayId: "", date: "", field: "", homeScore: "",
 
 export default function App() {
   const [page, setPage] = useState("home");
-  const [teams, setTeams] = useState(() => load("teams", []));
-  const [players, setPlayers] = useState(() => load("players", []));
-  const [matches, setMatches] = useState(() => load("matches", []));
 
-  const [teamForm, setTeamForm] = useState(emptyTeam);
-  const [playerForm, setPlayerForm] = useState(emptyPlayer);
-  const [matchForm, setMatchForm] = useState(emptyMatch);
+useEffect(() => {
+  fetchAll();
+}, []);
+
+async function fetchAll() {
+  const { data: teamsData } = await supabase.from("teams").select("*").order("created_at");
+  const { data: playersData } = await supabase.from("players").select("*").order("created_at");
+  const { data: matchesData } = await supabase.from("matches").select("*").order("created_at");
+
+  setTeams(teamsData || []);
+  setPlayers(playersData || []);
+  setMatches(matchesData || []);
+}
+
+ const [teams, setTeams] = useState([]);
+ const [players, setPlayers] = useState([]);
+ const [matches, setMatches] = useState([]);
 
   const [finishId, setFinishId] = useState("");
   const [finishScore, setFinishScore] = useState({ homeScore: "", awayScore: "" });
