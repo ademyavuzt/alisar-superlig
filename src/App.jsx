@@ -355,13 +355,38 @@ const dayMatch = upcoming[0] || past[0];
   }
 
   async function finishMatch() {
-    if (!finishId) return alert("Maç seç.");
-    if (finishScore.home_score === "" || finishScore.away_score === "") return alert("Skor gir.");
+  if (!finishId) return alert("Maç seç.");
+  if (finishScore.home_score === "" || finishScore.away_score === "") {
+    return alert("Skor gir.");
+  }
 
-    async function loginAdmin() {
+  const { error } = await supabase
+    .from("matches")
+    .update({
+      home_score: Number(finishScore.home_score),
+      away_score: Number(finishScore.away_score),
+      scorers: finishScorers.filter(Boolean),
+      yellows: finishYellows.filter(Boolean),
+      reds: finishReds.filter(Boolean),
+      finished: true,
+    })
+    .eq("id", finishId);
+
+  if (error) return alert("Maç sonlandırılamadı: " + error.message);
+
+  setFinishId("");
+  setFinishScore({ home_score: "", away_score: "" });
+  setFinishScorers([]);
+  setFinishYellows([]);
+  setFinishReds([]);
+
+  fetchAll();
+}
+
+async function loginAdmin() {
   const { error } = await supabase.auth.signInWithPassword({
     email: loginForm.email,
-    password: loginForm.password
+    password: loginForm.password,
   });
 
   if (error) return alert("Giriş başarısız: " + error.message);
@@ -381,7 +406,7 @@ async function addNews() {
   const { error } = await supabase.from("news").insert({
     type: newsForm.type,
     title: newsForm.title,
-    content: newsForm.content
+    content: newsForm.content,
   });
 
   if (error) return alert("Haber eklenemedi: " + error.message);
@@ -389,7 +414,7 @@ async function addNews() {
   setNewsForm({
     type: "TRANSFER",
     title: "",
-    content: ""
+    content: "",
   });
 
   fetchAll();
@@ -404,28 +429,6 @@ async function deleteNews(id) {
 
   fetchAll();
 }
-
-    const { error } = await supabase
-      .from("matches")
-      .update({
-        home_score: Number(finishScore.home_score),
-        away_score: Number(finishScore.away_score),
-        scorers: finishScorers.filter(Boolean),
-        yellows: finishYellows.filter(Boolean),
-        reds: finishReds.filter(Boolean),
-        finished: true,
-      })
-      .eq("id", finishId);
-
-    if (error) return alert("Maç sonlandırılamadı: " + error.message);
-
-    setFinishId("");
-    setFinishScore({ home_score: "", away_score: "" });
-    setFinishScorers([]);
-    setFinishYellows([]);
-    setFinishReds([]);
-    fetchAll();
-  }
 
   async function setManualStat(id, key, value) {
     const { error } = await supabase
