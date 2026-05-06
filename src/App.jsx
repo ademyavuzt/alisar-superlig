@@ -168,34 +168,39 @@ const [selectedTeamDetail, setSelectedTeamDetail] = useState(null);
     );
   }, [teams, matches]);
 
-  const playerStats = useMemo(() => {
-  const filteredPlayers = playerFilterTeam
-  ? playerStats.filter((p) => p.team_id === playerFilterTeam)
-  : playerStats;
-    const map = new Map(players.map((p) => [p.id, { ...p, goals: 0, yellow: 0, red: 0 }]));
+ const playerStats = useMemo(() => {
+  const map = new Map(
+    players.map((p) => [
+      p.id,
+      { ...p, goals: 0, yellow: 0, red: 0 },
+    ])
+  );
 
-    matches.forEach((m) => {
-      if (!m.finished) return;
+  matches.forEach((m) => {
+    if (!m.finished) return;
 
-      (m.scorers || []).forEach((id) => {
-        const p = map.get(id);
-        if (p) p.goals += 1;
-      });
-
-      (m.yellows || []).forEach((id) => {
-        const p = map.get(id);
-        if (p) p.yellow += 1;
-      });
-
-      (m.reds || []).forEach((id) => {
-        const p = map.get(id);
-        if (p) p.red += 1;
-      });
+    (m.scorers || []).forEach((id) => {
+      const p = map.get(id);
+      if (p) p.goals += 1;
     });
 
-    return [...map.values()].sort((a, b) => b.goals - a.goals);
-  }, [players, matches]);
+    (m.yellows || []).forEach((id) => {
+      const p = map.get(id);
+      if (p) p.yellow += 1;
+    });
 
+    (m.reds || []).forEach((id) => {
+      const p = map.get(id);
+      if (p) p.red += 1;
+    });
+  });
+
+  return [...map.values()].sort((a, b) => b.goals - a.goals);
+}, [players, matches]);
+
+const filteredPlayers = playerFilterTeam
+  ? playerStats.filter((p) => p.team_id === playerFilterTeam)
+  : playerStats;
   const upcoming = matches.filter((m) => !m.finished);
   const past = matches.filter((m) => m.finished);
 const dayMatch = upcoming[0] || past[0];
@@ -411,10 +416,7 @@ const dayMatch = upcoming[0] || past[0];
             </section>
 
             <section className="grid two">
-           <Standings
-  teams={standings}
-  onTeamClick={setSelectedTeamDetail}
-/>
+              <Standings teams={standings} />
               <Panel title="Lig Haberleri">
                 <div className="news"><b>TRANSFER</b><p>Takımlar kadrolarını güçlendirmek için piyasaya indi.</p></div>
                 <div className="news"><b>MAÇ ÖNÜ</b><p>Haftanın maçı için sahada tansiyon yüksek.</p></div>
@@ -447,23 +449,8 @@ const dayMatch = upcoming[0] || past[0];
 
         {page === "players" && (
           <Page title="Oyuncular">
-         <div className="filterBar">
-  <select
-    value={playerFilterTeam}
-    onChange={(e) => setPlayerFilterTeam(e.target.value)}
-  >
-    <option value="">Tüm Takımlar</option>
-
-    {teams.map((t) => (
-      <option key={t.id} value={t.id}>
-        {t.name}
-      </option>
-    ))}
-  </select>
-</div>
-
-<div className="cards">
-  {filteredPlayers.map((p) => (
+            <div className="cards">
+              {playerStats.map((p) => (
                 <div className="teamCard" key={p.id}>
                   <div className="playerAvatar">{p.name?.[0]}</div>
                   <h2>{p.name}</h2>
@@ -682,67 +669,6 @@ const dayMatch = upcoming[0] || past[0];
             </div>
           </Page>
         )}
-        {selectedTeamDetail && (
-  <div
-    className="modalOverlay"
-    onClick={() => setSelectedTeamDetail(null)}
-  >
-    <div
-      className="teamModal"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <Logo team={selectedTeamDetail} />
-
-      <h2>{selectedTeamDetail.name}</h2>
-
-      <p>
-        Başkan: {selectedTeamDetail.president || "-"}
-      </p>
-
-      <div className="stats">
-        <Stat
-          label="Puan"
-          value={selectedTeamDetail.pts}
-          green
-        />
-
-        <Stat
-          label="Galibiyet"
-          value={selectedTeamDetail.wins}
-        />
-
-        <Stat
-          label="Beraberlik"
-          value={selectedTeamDetail.draws}
-        />
-
-        <Stat
-          label="Mağlubiyet"
-          value={selectedTeamDetail.losses}
-        />
-      </div>
-
-      <h3>Oyuncular</h3>
-
-      {players
-        .filter(
-          (p) => p.team_id === selectedTeamDetail.id
-        )
-        .map((p) => (
-          <div className="adminRow" key={p.id}>
-            <span>{p.name}</span>
-            <span>{p.position || "-"}</span>
-          </div>
-        ))}
-
-      <button
-        onClick={() => setSelectedTeamDetail(null)}
-      >
-        Kapat
-      </button>
-    </div>
-  </div>
-)}
       </main>
       <div className="mobileNav">
   <button onClick={() => setPage("home")}>Ana Sayfa</button>
@@ -809,7 +735,7 @@ function MatchCard({ match, getTeam, formatDate, title }) {
     </div>
   );
 }
-function Standings({ teams, onTeamClick }) {
+function Standings({ teams }) {
   return (
     <div className="panel">
       <h2>Puan Durumu</h2>
@@ -834,16 +760,7 @@ function Standings({ teams, onTeamClick }) {
           {teams.map((t, i) => (
             <tr key={t.id}>
               <td>{i + 1}</td>
-
-              <td>
-                <button
-                  className="teamLink"
-                  onClick={() => onTeamClick(t)}
-                >
-                  {t.name}
-                </button>
-              </td>
-
+              <td>{t.name}</td>
               <td>{t.played}</td>
               <td>{t.wins}</td>
               <td>{t.draws}</td>
@@ -859,6 +776,7 @@ function Standings({ teams, onTeamClick }) {
     </div>
   );
 }
+
 function Page({ title, children }) {
   return (
     <>
