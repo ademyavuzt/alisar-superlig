@@ -563,3 +563,25 @@ button.finish { width: 100%; background: #10b981; }
   padding: 12px;
   border-radius: 14px;
 }
+.matchCard {
+  color: #0f172a;
+}
+
+.matchCard p,
+.matchCard small,
+.matchCard h3,
+.matchCard b {
+  color: #0f172a;
+}
+
+.matchEvents {
+  color: #0f172a;
+}
+
+.teamCard {
+  color: #0f172a;
+}
+
+.panel {
+  color: #0f172a;
+}
