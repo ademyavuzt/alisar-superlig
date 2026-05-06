@@ -661,6 +661,13 @@ export default function App() {
           </Page>
         )}
       </main>
+      <div className="mobileNav">
+  <button onClick={() => setPage("home")}>Ana Sayfa</button>
+  <button onClick={() => setPage("teams")}>Takımlar</button>
+  <button onClick={() => setPage("players")}>Oyuncular</button>
+  <button onClick={() => setPage("matches")}>Maçlar</button>
+  <button onClick={() => setPage("admin")}>Admin</button>
+</div>
     </div>
   );
 }
