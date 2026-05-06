@@ -1,9 +1,10 @@
+import { supabase } from "./supabase";
 import { useEffect, useMemo, useState } from "react";
 import "./styles.css";
 
 const uid = () => crypto.randomUUID();
 const load = (key, fallback) => JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
-const save = (key, data) => localStorage.setItem(key, JSON.stringify(data));
+const [teams, setTeams] = useState(() => load("teams", []));
 
 const emptyTeam = { name: "", logo: "", president: "", manual: false, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, pts: 0 };
 const emptyPlayer = { name: "", teamId: "", position: "", number: "", foot: "", assists: 0 };
@@ -108,11 +109,26 @@ export default function App() {
     return today ? `BUGÜN ${time}` : `${d.toLocaleDateString("tr-TR")} ${time}`;
   }
 
-  function addTeam() {
-    if (!teamForm.name.trim()) return alert("Takım adı boş olamaz.");
-    setTeams([...teams, { ...emptyTeam, ...teamForm, id: uid() }]);
-    setTeamForm(emptyTeam);
-  }
+async function addTeam() {
+  if (!teamForm.name.trim()) return alert("Takım adı boş olamaz.");
+
+  await supabase.from("teams").insert({
+    name: teamForm.name,
+    logo: teamForm.logo,
+    president: teamForm.president,
+    manual: false,
+    played: 0,
+    wins: 0,
+    draws: 0,
+    losses: 0,
+    gf: 0,
+    ga: 0,
+    pts: 0
+  });
+
+  setTeamForm(emptyTeam);
+  fetchAll();
+}
 
   function fileToBase64(file, callback) {
   const reader = new FileReader();
@@ -523,4 +539,18 @@ function Panel({ title, children }) {
 
 function Stat({ label, value, green }) {
   return <div className={green ? "stat green" : "stat"}><span>{label}</span><b>{value}</b></div>;
+
+  useEffect(() => {
+  fetchAll();
+}, []);
+
+async function fetchAll() {
+  const { data: teamsData } = await supabase.from("teams").select("*").order("created_at");
+  const { data: playersData } = await supabase.from("players").select("*").order("created_at");
+  const { data: matchesData } = await supabase.from("matches").select("*").order("created_at");
+
+  setTeams(teamsData || []);
+  setPlayers(playersData || []);
+  setMatches(matchesData || []);
+}
 }
