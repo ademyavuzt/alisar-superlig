@@ -36,9 +36,7 @@ async function fetchAll() {
   const [finishYellows, setFinishYellows] = useState([]);
   const [finishReds, setFinishReds] = useState([]);
 
-  useEffect(() => save("teams", teams), [teams]);
-  useEffect(() => save("players", players), [players]);
-  useEffect(() => save("matches", matches), [matches]);
+
 
   const getTeam = (id) => teams.find(t => t.id === id);
   const getTeamName = (id) => getTeam(id)?.name || "-";
