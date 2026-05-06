@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 import "./styles.css";
 const uid = () => crypto.randomUUID();
 const load = (key, fallback) => JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
-const [teams, setTeams] = useState(() => load("teams", []));
+
 
 const emptyTeam = { name: "", logo: "", president: "", manual: false, played: 0, wins: 0, draws: 0, losses: 0, gf: 0, ga: 0, pts: 0 };
 const emptyPlayer = { name: "", teamId: "", position: "", number: "", foot: "", assists: 0 };
