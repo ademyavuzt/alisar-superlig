@@ -124,22 +124,36 @@ async function fetchAll() {
 async function addTeam() {
   if (!teamForm.name.trim()) return alert("Takım adı boş olamaz.");
 
-  await supabase.from("teams").insert({
-    name: teamForm.name,
-    logo: teamForm.logo,
-    president: teamForm.president,
-    manual: false,
-    played: 0,
-    wins: 0,
-    draws: 0,
-    losses: 0,
-    gf: 0,
-    ga: 0,
-    pts: 0
-  });
+  const { data, error } = await supabase
+    .from("teams")
+    .insert([
+      {
+        name: teamForm.name,
+        logo: teamForm.logo || "",
+        president: teamForm.president || "",
+        manual: false,
+        played: 0,
+        wins: 0,
+        draws: 0,
+        losses: 0,
+        gf: 0,
+        ga: 0,
+        pts: 0
+      }
+    ])
+    .select();
+
+  if (error) {
+    console.error("Takım ekleme hatası:", error);
+    alert("Takım eklenemedi: " + error.message);
+    return;
+  }
+
+  console.log("Takım eklendi:", data);
 
   setTeamForm(emptyTeam);
   fetchAll();
+
 }
 
   function fileToBase64(file, callback) {
